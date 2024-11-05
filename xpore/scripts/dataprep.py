@@ -30,7 +30,7 @@ def parallel_index(eventalign_filepath,chunk_size,out_dir,n_processes,resume):
     # Create output paths and locks.
     out_paths, locks = dict(), dict()
     for out_filetype in ['index']:
-        out_paths[out_filetype] = os.path.join(out_dir, 'eventalign.', out_filetype)
+        out_paths[out_filetype] = os.path.join(out_dir, f"eventalign.{out_filetype}")
         locks[out_filetype] = multiprocessing.Lock()
         
         

@@ -102,7 +102,7 @@ def diffmod(args):
     # Create output paths and locks.
     out_paths,locks = dict(),dict()
     for out_filetype in ['model','table','log']:
-        out_paths[out_filetype] = os.path.join(paths['out_dir'], 'diffmod', out_filetype)
+        out_paths[out_filetype] = os.path.join(paths['out_dir'], f"diffmod.{out_filetype}")
         locks[out_filetype] = multiprocessing.Lock()
         
     # Create communication queues.
