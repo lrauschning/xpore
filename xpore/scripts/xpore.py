@@ -9,7 +9,7 @@ from xpore import __version__
 
 parser = ArgumentParser(prog='xpore')
 subparsers = parser.add_subparsers(help='Running modes', metavar='{dataprep, diffmod, postprocessing}')
-parser.add_argument('-v', '--version', action='version', version='%(prog)s {version}'.format(version=__version__))
+parser.add_argument('-v', '--version', action='version', version=__version__)
 
 ### RUN MODE "DATAPREP"
 parser_dataprep = subparsers.add_parser('dataprep', help='run mode for preprocessing nanopolish eventalign.txt before differential modification analysis')
