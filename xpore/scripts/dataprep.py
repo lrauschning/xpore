@@ -320,9 +320,7 @@ def parallel_preprocess_gene(eventalign_filepath,fasta_dict,annotation_dict,is_g
     df_eventalign_index.set_index('transcript_id',inplace=True)
     g2t_mapping = defaultdict(list)
 
-    print(df_eventalign_index)
     for tx_id in set(df_eventalign_index.index):
-        print(tx_id)
         if tx_id in annotation_dict:
 ##           g_id = ensembl.transcript_by_id(tx_id).gene_id 
             g_id = annotation_dict[tx_id]['g_id'] 
@@ -341,7 +339,6 @@ def parallel_preprocess_gene(eventalign_filepath,fasta_dict,annotation_dict,is_g
 #             continue
 #         else:
 #             gene_ids = gene_ids.union([g_id])
-    print(g2t_mapping)
 
     # Load tasks into task_queue.    
     gene_ids_processed = []
@@ -354,13 +351,11 @@ def parallel_preprocess_gene(eventalign_filepath,fasta_dict,annotation_dict,is_g
             # mapping a gene <-> transcripts
 
             n_reads, tx_ids, t2g_mapping = t2g(gene_id,fasta_dict,annotation_dict,g2t_mapping,df_eventalign_index,readcount_min)
-            print(f"{n_reads}, {tx_ids}, {t2g_mapping}")
             #
 
             if n_reads < readcount_min: 
                 continue
 
-            print("processing")
             data_dict = dict()
             readcount = 0
             for tx_id in tx_ids:
