@@ -10,6 +10,7 @@ from .gmm import GMM
 
 
 def get_dummies(x):
+    # NOTE leon: I think this could also be made more performant
     X = []
     labels = sorted(list(set(x)))
     for label in labels:
@@ -27,6 +28,9 @@ def load_data(idx, data_dict, min_count, max_count, pooling=False):
     """
     
     # Create all (pos,kmer) pairs from all runs.
+    ## NOTE leon: I think this step might be a major performance bottleneck.
+    ## TODO profile and/or implement more efficiently
+    ## => sorted join instead of intersection? Multithreading (should already be multithreaded though)?
     position_kmer_pairs = []
     for (condition_name,run_name), d_dict in data_dict.items(): # data_dict[run_name][idx][position][kmer]
         pairs = []
@@ -48,6 +52,7 @@ def load_data(idx, data_dict, min_count, max_count, pooling=False):
                 norm_means = d_dict[idx][pos][kmer]#['norm_means']
                 n_reads_per_run = len(norm_means)
                 # In case of pooling==False, if not enough reads, don't include them. 
+                # NOTE leon: why do we have a max count?
                 if (not pooling) and ((n_reads_per_run < min_count) or (n_reads_per_run > max_count)):
                     continue
                 #
@@ -76,6 +81,7 @@ def load_data(idx, data_dict, min_count, max_count, pooling=False):
                 if (np.array(n_reads[condition_name]) >= min_count).any() and (np.array(n_reads[condition_name]) <= max_count).any():
                     conditions_incl += [condition_name]
                     
+        # need at least 2 conditions to compare
         if len(conditions_incl) < 2:
             continue
 
