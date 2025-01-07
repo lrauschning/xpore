@@ -15,7 +15,7 @@ def makedirs(main_dir, sub_dirs=None, opt='depth'):
                 # if not os.path.exists(path):
                 try:  # Use try-catch for the case of multiprocessing.
                     os.makedirs(path)
-                except:
+                except FileExistsError:
                     pass
 
         else:  # opt == 'breadth'
@@ -25,7 +25,7 @@ def makedirs(main_dir, sub_dirs=None, opt='depth'):
                 # if not os.path.exists(path):
                 try:  # Use try-catch for the case of multiprocessing.
                     os.makedirs(path)
-                except:
+                except FileExistsError:
                     pass
 
     return filepaths

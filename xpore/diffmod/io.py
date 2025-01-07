@@ -31,7 +31,7 @@ def load_data(idx, data_dict, min_count, max_count, pooling=False):
     ## TODO profile and/or implement more efficiently
     ## => sorted join instead of intersection? Multithreading (should already be multithreaded though)?
     position_kmer_pairs = []
-    for (condition_name,run_name), d_dict in data_dict.items(): # data_dict[run_name][idx][position][kmer]
+    for _, d_dict in data_dict.items(): # data_dict[run_name][idx][position][kmer]
         pairs = []
         if d_dict is not None:
             for pos in d_dict[idx].keys():
@@ -43,7 +43,7 @@ def load_data(idx, data_dict, min_count, max_count, pooling=False):
 
     data = OrderedDict()
     for pos,kmer in position_kmer_pairs:  
-        y, read_ids, condition_labels, run_labels = [], [], [], []
+        y, _read_ids, condition_labels, run_labels = [], [], [], []
         n_reads = defaultdict(list)
         
         for (condition_name,run_name), d_dict in data_dict.items():
@@ -261,14 +261,12 @@ def generate_result_table(models, data_info):  # per idx (gene/transcript)
         idx, position, kmer = key
         mu = model.nodes['mu_tau'].expected()  # K
         sigma2 = 1./model.nodes['mu_tau'].expected(var='gamma')  # K
-        var_mu = model.nodes['mu_tau'].variance(var='normal')  # K
+        # these were not used anywhere; suppose they were for testing?
+        # var_mu = model.nodes['mu_tau'].variance(var='normal')  # K
         # mu = model.nodes['y'].params['mean']
         # sigma2 = model.nodes['y'].params['variance']
+        # N = model.nodes['y'].params['N'].round()  # GK
         w = model.nodes['w'].expected()  # GK
-        N = model.nodes['y'].params['N'].round()  # GK
-        N0 = N[:, 0].squeeze()
-        N1 = N[:, 1].squeeze()
-        w0 = w[:, 0].squeeze()
         coverage = np.sum(model.nodes['y'].params['N'], axis=-1)  # GK => G # n_reads per group
 
         p_overlap, list_cdf_at_intersections = stats.calc_prob_overlapping(mu, sigma2)

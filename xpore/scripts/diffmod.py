@@ -22,8 +22,8 @@ def execute(idx, data_dict, data_info, method, criteria, model_kmer, prior_param
         idx, pos, kmer = key
         kmer_signal = {'mean':model_kmer.loc[kmer,'model_mean'],'std':model_kmer.loc[kmer,'model_stdv']}
         kmer_signal['tau'] = 1./(kmer_signal['std']**2)
-        y_mean = data_at_pos['y'].mean()
-        y_tau = 1./(data_at_pos['y'].std()**2)
+        _y_mean = data_at_pos['y'].mean()
+        _y_tau = 1./(data_at_pos['y'].std()**2)
 
         K = 2
         if method['pooling']:
@@ -126,7 +126,7 @@ def diffmod(args):
 
     ### Load tasks in to task_queue. ###
     f_index,f_data = {},{}
-    for condition_name, run_names in data_info.items():
+    for _condition_name, run_names in data_info.items():
         for run_name, dirpath in run_names.items():
             # Read index files
             df_index = pandas.read_csv(os.path.join(dirpath,'data.index'),sep=',') 
@@ -153,7 +153,7 @@ def diffmod(args):
         
         data_dict = dict()
         for condition_name, run_names in data_info.items():
-            for run_name, dirpath in run_names.items():
+            for run_name, _dirpath in run_names.items():
                 try:
                     pos_start,pos_end = f_index[run_name][idx]
                 except KeyError:

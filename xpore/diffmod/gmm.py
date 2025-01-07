@@ -8,7 +8,7 @@ class GMM:
     """
     1D multi-sample 2-Gaussian mixture model.
     """
-    def __init__(self, method=None, data={'x': None, 'y': None, 'condition_names': None, 'run_names': None}, inits={'info': None, 'nodes': {'x': None, 'y': None, 'w': None, 'mu_tau': None, 'z': None}}, priors={'mu_tau': None, 'w': None},kmer_signal=None):
+    def __init__(self, method=None, data=None, inits=None, priors=None, kmer_signal=None):
         """
         Parameters
         ----------
@@ -21,6 +21,10 @@ class GMM:
         priors:
             Sth.
         """
+        # defaults are set in function body; mutable defaults may otherwise be confusing
+        data = {'x': None, 'y': None, 'condition_names': None, 'run_names': None}
+        inits = {'info': None, 'nodes': {'x': None, 'y': None, 'w': None, 'mu_tau': None, 'z': None}}
+        priors = {'mu_tau': None, 'w': None}
         
         self.nodes = dict()
         self.aux_params = dict()

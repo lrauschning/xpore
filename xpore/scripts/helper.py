@@ -102,7 +102,6 @@ class Consumer(multiprocessing.Process):
         self.result_queue = result_queue
         
     def run(self):
-        proc_name = self.name
         while True:
             next_task_args = self.task_queue.get()
             if next_task_args is None:

@@ -411,9 +411,9 @@ def preprocess_gene(gene_id,data_dict,t2g_mapping,out_paths,locks):
     # features = ['read_id','transcript_id','transcriptomic_position','reference_kmer','norm_mean','start_idx','end_idx'] # columns in the eventalign file per read.
 
     events = []
-    condition_labels = []
-    run_labels = []
-    read_ids = []
+    # condition_labels = []
+    # run_labels = []
+    # read_ids = []
     genomic_coordinates = []
     
     # Concatenate
@@ -421,7 +421,7 @@ def preprocess_gene(gene_id,data_dict,t2g_mapping,out_paths,locks):
 #         return
 
 
-    for read_index,events_per_read in data_dict.items():
+    for _read_index,events_per_read in data_dict.items():
 #         if len(events_per_read) > 0:
         # ===== transcript to gene coordinates ===== # TODO: to use gtf.
 #        tx_ids = [tx_id.decode('UTF-8').split('.')[0] for tx_id in events_per_read['transcript_id']]
@@ -440,9 +440,9 @@ def preprocess_gene(gene_id,data_dict,t2g_mapping,out_paths,locks):
 
         events += [events_per_read]
         genomic_coordinates += [genomic_coordinate]
-        n_events_per_read = len(events_per_read)
-#         else:
-#             print(read_index,len(events_per_read))
+        # n_events_per_read = len(events_per_read)
+        # else:
+        #     print(read_index,len(events_per_read))
 
     events = np.concatenate(events)
     genomic_coordinates = np.concatenate(genomic_coordinates)
@@ -483,7 +483,7 @@ def preprocess_gene(gene_id,data_dict,t2g_mapping,out_paths,locks):
             assert len(set(g_kmer_array)) == 1
             assert list(set(g_kmer_array))[0].count('N') == 0 ##to weed out the mapped kmers from tx_seq that contain 'N', which is not in diffmod's model_kmer
             assert {position} == set(g_positions_array)
-        except:
+        except AssertionError:
             asserted = False
             break
         kmer = set(g_kmer_array).pop()
@@ -520,12 +520,15 @@ def parallel_preprocess_tx(eventalign_filepath,out_dir,n_processes,readcount_min
     for out_filetype in ['json','index','log','readcount']:
         out_paths[out_filetype] = os.path.join(out_dir,'data.%s' %out_filetype)
         locks[out_filetype] = multiprocessing.Lock()
-                
+    
+    ## this code block doesn't seem to do anything;
+    ## leaving commented for now
     # Writing the starting of the files.
-    tx_ids_done = []
-    if resume and os.path.exists(out_paths['index']):
-        df_index = pd.read_csv(out_paths['index'],sep=',')
-        tx_ids_done = list(df_index['transcript_id'].unique())
+    #tx_ids_done = []
+    #if resume and os.path.exists(out_paths['index']):
+        #df_index = pd.read_csv(out_paths['index'],sep=',')
+        #tx_ids_done = list(df_index['transcript_id'.unique())
+
     else:
         open(out_paths['json'],'w').close()
         with open(out_paths['index'],'w') as f:
@@ -599,16 +602,16 @@ def preprocess_tx(tx_id,data_dict,out_paths,locks):
     # features = ['read_id','transcript_id','transcriptomic_position','reference_kmer','norm_mean','start_idx','end_idx'] # columns in the eventalign file per read.
 
     events = []
-    condition_labels = []
-    run_labels = []
-    read_ids = []
-    transcriptomic_coordinates = []
+    #condition_labels = []
+    #run_labels = []
+    #read_ids = []
+    #transcriptomic_coordinates = []
     
     # Concatenate
     if len(data_dict) == 0:
         return
 
-    for read_id,events_per_read in data_dict.items(): 
+    for _read_id,events_per_read in data_dict.items(): 
         # print(read_id)
         events += [events_per_read]
         
@@ -641,7 +644,7 @@ def preprocess_tx(tx_id,data_dict,out_paths,locks):
         try:
             assert len(set(reference_kmer_array)) == 1
             assert list(set(reference_kmer_array))[0].count('N') == 0 ##to weed out the mapped kmers from tx_seq that contain 'N', which is not in diffmod's model_kmer
-        except:
+        except AssertionError:
             asserted = False
             break
         kmer = set(reference_kmer_array).pop()
