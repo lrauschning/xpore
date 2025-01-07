@@ -44,7 +44,7 @@ xpore = "xpore.scripts.xpore:main"
 
 [tool.ruff.lint]
 select = ["E", "F", "B"]
-ignore = []
+ignore = ["E501"]
 
 [tool.setuptools]
 include-package-data = true # set explicitly in case it changes in the future
