@@ -3,12 +3,18 @@ from numpy import newaxis
 import scipy.special
 import scipy.stats
 
+# the code seems to rely on modifying these globals
+# making them explicit as global variables, instead of modifying default args
+DATA = {'x': None, 'y': None, 'condition_names': None, 'run_names': None}
+INITS = {'info': None, 'nodes': {'x': None, 'y': None, 'w': None, 'mu_tau': None, 'z': None}}
+PRIORS = {'mu_tau': None, 'w': None}
+        
 
 class GMM:  
     """
     1D multi-sample 2-Gaussian mixture model.
     """
-    def __init__(self, method=None, data=None, inits=None, priors=None, kmer_signal=None):
+    def __init__(self, method=None, data=DATA, inits=INITS, priors=PRIORS, kmer_signal=None):
         """
         Parameters
         ----------
@@ -21,11 +27,6 @@ class GMM:
         priors:
             Sth.
         """
-        # defaults are set in function body; mutable defaults may otherwise be confusing
-        data = {'x': None, 'y': None, 'condition_names': None, 'run_names': None}
-        inits = {'info': None, 'nodes': {'x': None, 'y': None, 'w': None, 'mu_tau': None, 'z': None}}
-        priors = {'mu_tau': None, 'w': None}
-        
         self.nodes = dict()
         self.aux_params = dict()
         self.K = 2  # modified and unmodified
