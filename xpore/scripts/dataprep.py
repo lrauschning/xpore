@@ -1,8 +1,6 @@
 import os
-import re
 import math
 import multiprocessing 
-import csv
 
 from operator import itemgetter
 from collections import defaultdict
@@ -10,7 +8,6 @@ from io import StringIO
 
 import numpy as np
 import pandas as pd
-import h5py
 import ujson
 
 from . import helper

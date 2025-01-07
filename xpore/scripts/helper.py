@@ -1,10 +1,8 @@
 import gzip
 import multiprocessing
-import numpy
 import os
 import pandas
 from functools import reduce
-from collections import defaultdict
 
 
 class EventalignFile:

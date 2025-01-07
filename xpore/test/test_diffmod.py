@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import pytest
 import os
-import shutil
 from xpore.scripts import diffmod
 
 @pytest.fixture

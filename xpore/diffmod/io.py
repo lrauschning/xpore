@@ -1,6 +1,5 @@
 import numpy as np
 import h5py
-import os
 from collections import OrderedDict, defaultdict
 import itertools
 import scipy.stats
