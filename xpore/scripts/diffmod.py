@@ -20,7 +20,7 @@ def execute(idx, data_dict, data_info, method, criteria, model_kmer, prior_param
     models = dict()
     for key,data_at_pos in data.items(): # For each position
         idx, pos, kmer = key
-        kmer_signal = {'mean':model_kmer.loc[kmer,'model_mean'],'std':model_kmer.loc[kmer,'model_stdv']}
+        kmer_signal = {'mean': model_kmer.loc[kmer,'model_mean'],'std': model_kmer.loc[kmer,'model_stdv']}
         kmer_signal['tau'] = 1./(kmer_signal['std']**2)
         _y_mean = data_at_pos['y'].mean()
         _y_tau = 1./(data_at_pos['y'].std()**2)
@@ -50,12 +50,16 @@ def execute(idx, data_dict, data_info, method, criteria, model_kmer, prior_param
 
         ### Fit a model.
         if method['prefiltering']:
-            pval = StatsTest(data_at_pos).fit(method=method['prefiltering']['method'])
             if np.isnan(pval) | (pval < method['prefiltering']['threshold']):
-                prefiltering = {method['prefiltering']['method']:pval}
-                models[key] = GMM(method,data_at_pos,priors=priors,kmer_signal=kmer_signal).fit(), prefiltering
+                models[key] = GMM(method,
+                                  data_at_pos,
+                                  priors=priors,
+                                  kmer_signal=kmer_signal).fit(), {method['prefiltering']['method']:pval}
         else:
-            models[key] = GMM(method,data_at_pos,priors=priors,kmer_signal=kmer_signal).fit(), None
+            models[key] = GMM(method,
+                              data_at_pos,
+                              priors=priors,
+                              kmer_signal=kmer_signal).fit(), None
 
         
     if save_models & (len(models)>0): #todo: 
