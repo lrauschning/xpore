@@ -1,8 +1,4 @@
-# This workflow will lint python and cython files using pylint and cython, respectively
-# adapted from https://github.com/actions/starter-workflows/blob/main/ci/pylint.yml
-# Linting can be configured in pyproject.toml
-
-name: "Lint using pylint"
+name: "Lint using ruff"
 
 on: 
   push:
