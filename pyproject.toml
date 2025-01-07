@@ -42,6 +42,10 @@ homepage = "https://github.com/GoekeLab/xpore"
 [project.scripts]
 xpore = "xpore.scripts.xpore:main"
 
+[tool.ruff.lint]
+select = ["E", "F", "B"]
+ignore = []
+
 [tool.setuptools]
 include-package-data = true # set explicitly in case it changes in the future
 
