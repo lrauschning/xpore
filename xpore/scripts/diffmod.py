@@ -46,7 +46,6 @@ def execute(idx, data_dict, data_info, method, criteria, model_kmer, prior_param
         priors['w']['concentration'] = np.ones([n_groups,K])*1. #GK
         priors['w']['concentration'][:,0] = float(prior_params['w']['concentration'][0])
         priors['w']['concentration'][:,1] = float(prior_params['w']['concentration'][1])
-        ###
 
         ### Fit a model.
         if method['prefiltering']:
@@ -63,7 +62,7 @@ def execute(idx, data_dict, data_info, method, criteria, model_kmer, prior_param
                               priors=priors,
                               kmer_signal=kmer_signal).fit(),
                               None)
-
+    #END
         
     if save_models & (len(models)>0): #todo: 
         print(out_paths['model_filepath'],idx)

@@ -1,6 +1,12 @@
 import scipy.stats
 import numpy as np
 
+"""
+This file implements some statistical tests, used both for prefiltering sites prior to GMM fitting to improve performance and for assigning significance after the fit.
+It is called by worker threads in scripts/diffmod.py .
+"""
+
+
 class StatsTest:
     def __init__(self,data):
         if self.__isok(data):

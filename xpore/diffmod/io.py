@@ -305,6 +305,7 @@ def generate_result_table(models, data_info):  # per idx (gene/transcript)
                 n_cond2 = coverage[np.isin(model_group_names, cond2)]
 
                 z_score, p_ws = stats.z_test(w_cond1, w_cond2, n_cond1, n_cond2) # two=tailed
+                #TODO hook in more fancy test here
                 w_mod_mean_diff = np.mean(w_cond1)-np.mean(w_cond2)
 
                 stats_pairwise += [w_mod_mean_diff, p_ws, z_score]
@@ -326,6 +327,7 @@ def generate_result_table(models, data_info):  # per idx (gene/transcript)
                     n_cond2 = coverage[~np.isin(model_group_names, cond)]
 
                     z_score, p_ws = stats.z_test(w_cond1, w_cond2, n_cond1, n_cond2)
+                    #TODO hook in more fancy test here
                     w_mod_mean_diff = np.mean(w_cond1)-np.mean(w_cond2)
 
                     stats_one_vs_all += [w_mod_mean_diff, p_ws, z_score]
