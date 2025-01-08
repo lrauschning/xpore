@@ -49,7 +49,7 @@ def execute(idx, data_dict, data_info, method, criteria, model_kmer, prior_param
 
         ### Fit a model.
         if method['prefiltering']:
-            pval = StatsTest(data_at_pos).fit(method=method['prefiltering']['method'])
+            pval = statstest.METHODS_DICT['prefiltering']['method'](data_at_pos)
             if np.isnan(pval) | (pval < method['prefiltering']['threshold']):
                 models[key] = (GMM(method,
                                   data_at_pos,
