@@ -21,6 +21,7 @@ def t_test(data: List) -> float:
     assert labels.shape[1] == 2
 
     # separate means by labels
+    #TODO adjust this to replicate previous weirdness
     cond1means = means[labels[0]]
     cond2means = means[labels[1]]
     #cond2means = means[np.logical_not(labels)]
