@@ -22,8 +22,8 @@ def t_test(data: List) -> float:
 
     # separate means by labels
     #TODO adjust this to replicate previous weirdness
-    cond1means = means[labels[0]]
-    cond2means = means[labels[1]]
+    cond1means = means[labels[:,0]]
+    cond2means = means[labels[:,1]]
     #cond2means = means[np.logical_not(labels)]
 
     # perform t test on data
