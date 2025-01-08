@@ -96,9 +96,8 @@ def load_data(idx, data_dict, min_count, max_count, pooling=False):
 
 
 def save_result_table(table, out_filepath):
-    out_file = h5py.File(out_filepath, 'w')
-    out_file['result'] = table  # Structured np array.
-    out_file.close()
+    with h5py.File(out_filepath, 'w') as out:
+        out['result'] = table  # Structured np array.
 
 
 def save_models_to_hdf5(models, model_filepath):  # per gene/transcript
