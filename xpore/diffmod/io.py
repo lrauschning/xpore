@@ -90,6 +90,7 @@ def load_data(idx, data_dict, min_count, max_count, pooling=False):
 
         key = (idx, pos, kmer)
 
+        # leon: best as I can tell, x is the one-hot condition label and y the estimated mean mod. rates
         data[key] = {'y': y, 'x': x, 'r': r, 'condition_names': condition_names_dummies, 'run_names': run_names_dummies, 'y_condition_names': condition_labels, 'y_run_names': run_labels} # , 'read_ids': read_ids
 
     return data
