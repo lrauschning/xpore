@@ -14,11 +14,11 @@ from ..diffmod.statstest import StatsTest
         
 def execute(idx, data_dict, data_info, method, criteria, model_kmer, prior_params, out_paths, save_models,locks):
     """
-    Run the model on each posiiton across the given idx.
+    Run the model on each position across the given idx.
     """
     data = io.load_data(idx,data_dict,min_count=criteria['readcount_min'],max_count=criteria['readcount_max'],pooling=method['pooling']) 
     models = dict()
-    for key,data_at_pos in data.items(): # For each position
+    for key, data_at_pos in data.items(): # For each position
         idx, pos, kmer = key
         kmer_signal = {'mean': model_kmer.loc[kmer,'model_mean'],'std': model_kmer.loc[kmer,'model_stdv']}
         kmer_signal['tau'] = 1./(kmer_signal['std']**2)
@@ -52,15 +52,17 @@ def execute(idx, data_dict, data_info, method, criteria, model_kmer, prior_param
         if method['prefiltering']:
             pval = StatsTest(data_at_pos).fit(method=method['prefiltering']['method'])
             if np.isnan(pval) | (pval < method['prefiltering']['threshold']):
-                models[key] = GMM(method,
+                models[key] = (GMM(method,
                                   data_at_pos,
                                   priors=priors,
-                                  kmer_signal=kmer_signal).fit(), {method['prefiltering']['method']:pval}
+                                  kmer_signal=kmer_signal).fit(),
+                                  {method['prefiltering']['method']:pval})
         else:
-            models[key] = GMM(method,
+            models[key] = (GMM(method,
                               data_at_pos,
                               priors=priors,
-                              kmer_signal=kmer_signal).fit(), None
+                              kmer_signal=kmer_signal).fit(),
+                              None)
 
         
     if save_models & (len(models)>0): #todo: 

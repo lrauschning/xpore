@@ -12,7 +12,7 @@ class StatsTest:
         pval = np.nan
         if self.data is not None:
             if method == 't-test':
-                stats,_ = scipy.stats.ttest_ind(self.data[0],self.data[1])
+                stats,_ = scipy.stats.ttest_ind(self.data[0], self.data[1])
                 df = len(self.data[0]) + len(self.data[1]) - 2
                 pval = scipy.stats.t.sf(np.abs(stats), df)*2 # also defined as 1 - cdf, but sf is sometimes more accurate. #(1 - scipy.stats.t.cdf(abs(stat), df)) * 
         return pval
