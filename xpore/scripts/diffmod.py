@@ -5,12 +5,15 @@ import multiprocessing
 import ujson
 from collections import defaultdict
 import csv
+import itertools
+
 
 from . import helper
 from ..diffmod.configurator import Configurator
 from ..diffmod.gmm import GMM
 from ..diffmod import io
 from ..diffmod import statstest
+from ..utils import stats
         
 def execute(idx, data_dict, data_info, method, criteria, model_kmer, prior_params, out_paths, save_models,locks):
     """
@@ -101,7 +104,7 @@ def tabulate_results(models, data_info):  # per idx (gene/transcript)
         List of tuples.
     """
     # information from the config file used for modelling.
-    condition_names,run_names = get_ordered_condition_run_names(data_info)
+    condition_names,run_names = io.get_ordered_condition_run_names(data_info)
 
     table = []
     for key, (model,prefiltering) in models.items():
@@ -121,7 +124,7 @@ def tabulate_results(models, data_info):  # per idx (gene/transcript)
         model_group_names = model.nodes['x'].params['group_names'] #condition_names if pooling, run_names otherwise.
         
         ### Cluster assignment ###
-        conf_mu = [calculate_confidence_cluster_assignment(mu[0],model.kmer_signal),calculate_confidence_cluster_assignment(mu[1],model.kmer_signal)]
+        conf_mu = [io.calculate_confidence_cluster_assignment(mu[0],model.kmer_signal),io.calculate_confidence_cluster_assignment(mu[1],model.kmer_signal)]
     
         cluster_idx = {}
         if conf_mu[0] > conf_mu[1]:
