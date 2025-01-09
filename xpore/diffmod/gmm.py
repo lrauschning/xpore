@@ -33,7 +33,11 @@ class GMM:
         self.method = method
         self.kmer_signal = kmer_signal
         
-        self.__init_info(inits['info'])
+        if inits is None:
+            self.info = {'n_reads': 0, 'log_elbos': [], 'converged': False, 'n_iterations': -1, 'convergence_ratio': -1}
+        else:
+            self.info = INITS
+
 
         data_node_x = None
         if (data['x'] is not None) and (data['y'] is not None) and (data['r'] is not None):
@@ -72,12 +76,6 @@ class GMM:
         self.nodes['mu_tau'] = UnivariateNormalGamma(dim=(self.K), inits=inits['nodes']['mu_tau'], priors=priors['mu_tau'])
         self.nodes['z'] = Bernoulli(dim=(self.info['n_reads'], self.K), parents={'w': self.nodes['w'], 'x': self.nodes['x']}, inits=inits['nodes']['z'])
         self.nodes['y'] = UnivariateNormalMixture(parents={'z': self.nodes['z'], 'mu_tau': self.nodes['mu_tau'], 'x': self.nodes['x']}, data=data['y'], inits=inits['nodes']['y'])
-
-    def __init_info(self, inits):
-        if inits is None:
-            self.info = {'n_reads': 0, 'log_elbos': [], 'converged': False, 'n_iterations': -1, 'convergence_ratio': -1}
-        else:
-            self.info = inits
 
     def __compute_log_elbo(self):
         """
@@ -148,16 +146,10 @@ class Constant:
 
 class UnivariateNormalMixture:
     def __init__(self, parents=None, data=None, inits=None):
-
         self.parents = parents
         self.data = data
-
-        self.params = dict.fromkeys(['N', 'mean', 'variance'])
-        self.__initialise_params(inits)
-
-    def __initialise_params(self, inits):
-        if inits is not None:
-            self.params = inits
+        self.params = inits if inits is not None else\
+            dict.fromkeys(['N', 'mean', 'variance'])
 
     def _log_likelihood(self):
         n_reads = len(self.data)
@@ -200,12 +192,6 @@ class Bernoulli:
         self.params = dict()
         self.params['prob'] = np.full(dim, np.nan)
         self.params['ln_prob'] = np.full(dim, np.nan)
-        self.__initialise_params(inits)
-
-        self.parents = parents
-        self.data = data
-
-    def __initialise_params(self, inits=None):
         if inits is None:
             # self.params['prob'][:] = 0.5
             # self.params['ln_prob'][:] = np.log(0.5)
@@ -215,6 +201,9 @@ class Bernoulli:
             self.params['ln_prob'] = np.log(self.params['prob'])
         else:
             self.params = inits
+
+        self.parents = parents
+        self.data = data
 
     def _log_prob_prior(self):
         res = self.expected() * np.sum(self.parents['x'].data[..., newaxis] * self.parents['w'].expected(inner_func='log')[newaxis, :, :], axis=-2)  # sum across groups => N,K
@@ -252,29 +241,23 @@ class Bernoulli:
 
 class Dirichlet:
     def __init__(self, dim, parents=None, data=None, inits=None, priors=None):  # dim - [,n_categories]
-
-        self.priors = dict()
-        self.priors['concentration'] = np.full(dim, np.nan)
-        self.__set_priors(priors)
-
-        self.params = dict()
-        self.params['concentration'] = np.full(dim, np.nan)
-        self.__initialise_params(inits)
-
-        self.parents = parents
-        self.data = data
-
-    def __initialise_params(self, inits=None):
-        if inits is None:
-            self.params['concentration'][:] = self.priors['concentration'][:]
-        else:
-            self.params = inits
-
-    def __set_priors(self, priors=None):
+        # init priors
+        self.priors = {'concentration': np.full(dim, np.nan)}
         if priors is None:
             self.priors['concentration'][:] = 1
         else:
             self.priors = priors
+
+        # init params
+        self.params = {'concentration': np.full(dim, np.nan)}
+        if inits is None:
+            # [:] to force a copy
+            self.params['concentration'][:] = self.priors['concentration'][:]
+        else:
+            self.params = inits
+
+        self.parents = parents
+        self.data = data
 
     def _log_prob_prior(self):
         res = Dirichlet.__log_C(self.priors['concentration']) + np.sum((self.priors['concentration']-1)*self.expected(inner_func='log'), axis=-1)  # sum k => G
