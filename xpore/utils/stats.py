@@ -1,7 +1,7 @@
-import scipy.stats
 from math import fabs, sqrt, log, erf
 import numpy as np
-# from ..exts.statistics import NormalDist
+#from ..exts.statistics import NormalDist
+#import scipy.stats
 
 
 def calc_prob_overlapping(means, variances):
