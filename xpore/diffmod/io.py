@@ -231,6 +231,3 @@ def get_result_table_header(data_info,method):
         header += [method['prefiltering']['method']]
     return header
 
-def calculate_confidence_cluster_assignment(mu,kmer_signal):
-    cdf = scipy.stats.norm.cdf(kmer_signal['mean'] - abs(kmer_signal['mean']-mu), loc=kmer_signal['mean'], scale=kmer_signal['std'])
-    return cdf*2

@@ -26,7 +26,6 @@ def _separate_conds(labels, data) -> Tuple[np.array, np.array]:
 
 
 def t_test(data: Dict) -> Tuple[float, float]:
-    print(data)
     c1means, c2means = _separate_conds(data['x'].astype(np.bool), data['y'])
 
     # perform t test on data
@@ -36,6 +35,10 @@ def t_test(data: Dict) -> Tuple[float, float]:
     return scipy.stats.t.sf(np.abs(stats), len(c1means)+len(c2means)-2)*2
     # equivalent, but sf can be more precise
     #(1 - scipy.stats.t.cdf(abs(stat), df)) * 2
+
+#w = model.nodes['w'].expected()  # GK
+#coverage = np.sum(model.nodes['y'].params['N'], axis=-1)  # GK => G # n_reads per group
+
 
 def z_test(data: Dict) -> Tuple[float, float]:
     print(data['x'], data['y'])
