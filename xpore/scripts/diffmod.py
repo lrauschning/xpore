@@ -104,7 +104,7 @@ def tabulate_results(models, data_info):  # per idx (gene/transcript)
         List of tuples.
     """
     # information from the config file used for modelling.
-    condition_names,run_names = io.get_ordered_condition_run_names(data_info)
+    condition_names, run_names = io.get_ordered_condition_run_names(data_info)
 
     table = []
     for key, (model,prefiltering) in models.items():
@@ -124,7 +124,7 @@ def tabulate_results(models, data_info):  # per idx (gene/transcript)
         model_group_names = model.nodes['x'].params['group_names'] #condition_names if pooling, run_names otherwise.
         
         ### Cluster assignment ###
-        conf_mu = [io.calculate_confidence_cluster_assignment(mu[0],model.kmer_signal),io.calculate_confidence_cluster_assignment(mu[1],model.kmer_signal)]
+        conf_mu = [io.calculate_confidence_cluster_assignment(mu[0], model.kmer_signal), io.calculate_confidence_cluster_assignment(mu[1], model.kmer_signal)]
     
         cluster_idx = {}
         if conf_mu[0] > conf_mu[1]:
@@ -148,13 +148,15 @@ def tabulate_results(models, data_info):  # per idx (gene/transcript)
                 cond1, cond2 = [cond1], [cond2]
             else:
                 cond1, cond2 = list(data_info[cond1].keys()), list(data_info[cond2].keys())
-            if any(r in model_group_names for r in cond1) and any(r in model_group_names for r in cond2):
+
+            if any(r in model_group_names for r in cond1) \
+                    and any(r in model_group_names for r in cond2):
                 w_cond1 = w[np.isin(model_group_names, cond1), cluster_idx['mod']].flatten()
                 w_cond2 = w[np.isin(model_group_names, cond2), cluster_idx['mod']].flatten()
                 n_cond1 = coverage[np.isin(model_group_names, cond1)]
                 n_cond2 = coverage[np.isin(model_group_names, cond2)]
 
-                z_score, p_ws = stats.z_test(w_cond1, w_cond2, n_cond1, n_cond2) # two=tailed
+                z_score, p_ws = statstest.z_test(w_cond1, w_cond2, n_cond1, n_cond2) # two=tailed
                 #TODO hook in more fancy test here
                 w_mod_mean_diff = np.mean(w_cond1)-np.mean(w_cond2)
 
@@ -176,7 +178,7 @@ def tabulate_results(models, data_info):  # per idx (gene/transcript)
                     n_cond1 = coverage[np.isin(model_group_names, cond)]
                     n_cond2 = coverage[~np.isin(model_group_names, cond)]
 
-                    z_score, p_ws = stats.z_test(w_cond1, w_cond2, n_cond1, n_cond2)
+                    z_score, p_ws = statstest.z_test(w_cond1, w_cond2, n_cond1, n_cond2)
                     #TODO hook in more fancy test here
                     w_mod_mean_diff = np.mean(w_cond1)-np.mean(w_cond2)
 
