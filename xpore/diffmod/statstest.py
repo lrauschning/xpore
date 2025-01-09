@@ -21,7 +21,6 @@ def t_test(data: List) -> float:
     assert labels.shape[1] == 2
 
     # separate means by labels
-    #TODO adjust this to replicate previous weirdness
     cond1means = means[labels[:,0]]
     cond2means = means[labels[:,1]]
     #cond2means = means[np.logical_not(labels)]
@@ -33,6 +32,17 @@ def t_test(data: List) -> float:
     return scipy.stats.t.sf(np.abs(stats), len(cond1means)+len(cond2means)-2)*2
     # equivalent, but sf can be more precise
     #(1 - scipy.stats.t.cdf(abs(stat), df)) * 2
+
+def z_test(y1, y2, n1, n2):
+    # two-tailed
+    p1 = y1.mean()
+    p2 = y2.mean()
+    n1 = n1.mean().round()
+    n2 = n2.mean().round()
+    se = np.sqrt(p1*(1-p1)/n1 + p2*(1-p2)/n2)
+    z = (p1 - p2) / se
+    return z, scipy.stats.norm.sf(abs(z))*2
+
 
 def linear_test(data: List) -> float:
     pass
