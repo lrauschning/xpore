@@ -26,10 +26,11 @@ def _separate_conds(labels, data) -> Tuple[np.array, np.array]:
 
 
 def t_test(data: Dict) -> Tuple[float, float]:
+    print(data)
     c1means, c2means = _separate_conds(data['x'].astype(np.bool), data['y'])
 
     # perform t test on data
-    stats, _ = scipy.stats.ttest_ind(cond1means, cond2means)
+    stats, _ = scipy.stats.ttest_ind(c1means, c2means)
 
     # compute two-sided significance. |labels| - 2 degrees of freedom
     return scipy.stats.t.sf(np.abs(stats), len(c1means)+len(c2means)-2)*2
