@@ -118,6 +118,7 @@ def tabulate_results(models, data_info):  # per idx (gene/transcript)
         # N = model.nodes['y'].params['N'].round()  # GK
         w = model.nodes['w'].expected()  # GK
         coverage = np.sum(model.nodes['y'].params['N'], axis=-1)  # GK => G # n_reads per group
+        #TODO get this into data or sth
 
         p_overlap, list_cdf_at_intersections = stats.calc_prob_overlapping(mu, sigma2)
 

@@ -13,16 +13,16 @@ It is called by worker threads in scripts/diffmod.py .
 # (idx, pos, kmer) -> {'y': y, 'x': x, 'r': r, 'condition_names': condition_names_dummies, 'run_names': run_names_dummies, 'y_condition_names': condition_labels, 'y_run_names': run_labels}
 # by default, in the call only the values are passed along
 
-def _separate_conds(labels, means) -> Tuple[np.array, np.array]:
+def _separate_conds(labels, data) -> Tuple[np.array, np.array]:
     # check for at most two conditions
     assert labels.shape[1] == 2
 
-    # separate means by labels
-    c1means = means[labels[:,0]]
-    c2means = means[labels[:,1]]
-    #c2means = means[np.logical_not(labels)]
+    # separate data cols by labels
+    c1data = data[labels[:,0]]
+    c2data = data[labels[:,1]]
+    #c2data = data[np.logical_not(labels)]
 
-    return c1means, c2means
+    return c1data, c2data
 
 
 def t_test(data: Dict) -> Tuple[float, float]:
@@ -38,13 +38,18 @@ def t_test(data: Dict) -> Tuple[float, float]:
 
 def z_test(data: Dict) -> Tuple[float, float]:
     print(data['x'], data['y'])
-    # two-tailed
+    
+    # separate both means and cov data
+    c1means, c2means = _separate_conds(data['x'].astype(np.bool), data['y'])
+    c1covs, c2covs = _separate_conds(data['x'].astype(np.bool), data['y'])
+    #TODO how to get cov data into there? stored in the model, not available in prefiltering???
     p1 = y1.mean()
     p2 = y2.mean()
     n1 = n1.mean().round()
     n2 = n2.mean().round()
     se = np.sqrt(p1*(1-p1)/n1 + p2*(1-p2)/n2)
     z = (p1 - p2) / se
+    # do a two-tailed test
     return z, scipy.stats.norm.sf(abs(z))*2
 
 
