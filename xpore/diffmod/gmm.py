@@ -4,17 +4,17 @@ import scipy.special
 import scipy.stats
 
 # the code seems to rely on modifying these globals
-# making them explicit as global variables, instead of modifying default args
+# making them explicit as global variables, instead of modifying late-binding default args
 DATA = {'x': None, 'y': None, 'condition_names': None, 'run_names': None}
-INITS = {'info': None, 'nodes': {'x': None, 'y': None, 'w': None, 'mu_tau': None, 'z': None}}
 PRIORS = {'mu_tau': None, 'w': None}
+#INITS = {'info': None, 'nodes': {'x': None, 'y': None, 'w': None, 'mu_tau': None, 'z': None}}
         
 
 class GMM:  
     """
     1D multi-sample 2-Gaussian mixture model.
     """
-    def __init__(self, method=None, data=DATA, inits=INITS, priors=PRIORS, kmer_signal=None):
+    def __init__(self, method=None, data=DATA, inits=None, priors=PRIORS, kmer_signal=None):
         """
         Parameters
         ----------
@@ -33,8 +33,10 @@ class GMM:
         self.method = method
         self.kmer_signal = kmer_signal
         
+        # use inits to initialize info
         if inits is None:
-            self.info = {'n_reads': 0, 'log_elbos': [], 'converged': False, 'n_iterations': -1, 'convergence_ratio': -1}
+            #self.info = {'n_reads': 0, 'log_elbos': [], 'converged': False, 'n_iterations': -1, 'convergence_ratio': -1}
+            self.info = {'info': None, 'nodes': {'x': None, 'y': None, 'w': None, 'mu_tau': None, 'z': None}, 'n_reads': 0,  'log_elbos': [], 'converged': False, 'n_iterations': -1, 'convergence_ratio': -1}
         else:
             self.info = INITS
 
@@ -56,13 +58,13 @@ class GMM:
             # kmeans = KMeans(n_clusters=self.K).fit(data['y'][:,newaxis])
             # locations = kmeans.cluster_centers_.flatten()
 
-            inits['nodes']['mu_tau'] = {'location': locations, 'lambda': priors['mu_tau']['lambda'], 'alpha': priors['mu_tau']['alpha'], 'beta': priors['mu_tau']['beta']}
+            self.info['nodes']['mu_tau'] = {'location': locations, 'lambda': priors['mu_tau']['lambda'], 'alpha': priors['mu_tau']['alpha'], 'beta': priors['mu_tau']['beta']}
             
             if self.method['pooling']:
-                inits['nodes']['x'] = {'group_names': data['condition_names']}
+                self.info['nodes']['x'] = {'group_names': data['condition_names']}
                 data_node_x = data['x']
             else:
-                inits['nodes']['x'] = {'group_names': data['run_names']}
+                self.info['nodes']['x'] = {'group_names': data['run_names']}
                 data_node_x = data['r']
 
             # additional nodes for postprocessing analysis
@@ -70,12 +72,12 @@ class GMM:
             self.nodes['y_run_names'] = Constant(data=data['y_run_names'])
 
         # Define the graph
-        self.nodes['x'] = Constant(data=data_node_x, inits=inits['nodes']['x'])   # NG
+        self.nodes['x'] = Constant(data=data_node_x, inits=self.info['nodes']['x'])   # NG
         self.n_groups = len(self.nodes['x'].params['group_names'])
-        self.nodes['w'] = Dirichlet(dim=(self.n_groups, self.K), inits=inits['nodes']['w'], priors=priors['w'])
-        self.nodes['mu_tau'] = UnivariateNormalGamma(dim=(self.K), inits=inits['nodes']['mu_tau'], priors=priors['mu_tau'])
-        self.nodes['z'] = Bernoulli(dim=(self.info['n_reads'], self.K), parents={'w': self.nodes['w'], 'x': self.nodes['x']}, inits=inits['nodes']['z'])
-        self.nodes['y'] = UnivariateNormalMixture(parents={'z': self.nodes['z'], 'mu_tau': self.nodes['mu_tau'], 'x': self.nodes['x']}, data=data['y'], inits=inits['nodes']['y'])
+        self.nodes['w'] = Dirichlet(dim=(self.n_groups, self.K), inits=self.info['nodes']['w'], priors=priors['w'])
+        self.nodes['mu_tau'] = UnivariateNormalGamma(dim=(self.K), inits=self.info['nodes']['mu_tau'], priors=priors['mu_tau'])
+        self.nodes['z'] = Bernoulli(dim=(self.info['n_reads'], self.K), parents={'w': self.nodes['w'], 'x': self.nodes['x']}, inits=self.info['nodes']['z'])
+        self.nodes['y'] = UnivariateNormalMixture(parents={'z': self.nodes['z'], 'mu_tau': self.nodes['mu_tau'], 'x': self.nodes['x']}, data=data['y'], inits=self.info['nodes']['y'])
 
     def __compute_log_elbo(self):
         """
