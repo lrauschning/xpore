@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.stats
 import pandas
 import os
 import multiprocessing 
@@ -23,6 +24,8 @@ def execute(idx, data_dict, data_info, method, criteria, model_kmer, prior_param
     ### load data and metadata
     data = io.load_data(idx, data_dict, min_count=criteria['readcount_min'], max_count=criteria['readcount_max'], pooling=method['pooling']) 
     condition_names, run_names = io.get_ordered_condition_run_names(data_info)
+    print(data_info)
+    print(condition_names, run_names)
 
 
     ### iterate over sites, storing the models in a dict keyed by id/position/kmer
@@ -53,19 +56,21 @@ def execute(idx, data_dict, data_info, method, criteria, model_kmer, prior_param
             continue
 
         ### Assign clusters to modified/unmodified
-        cluster_id = get_mod_clusterid(model)
+        mod_id = get_mod_clusterid(model)
 
         ### compute post evaluation statistics 
+        # prepare dict mapping conditions to replicates
+        rep_map = {k: list(v.keys()) for k, v in data_info.items()}
         ## do full pairwise tests
-        pairwise_tests = pairwise_tests(data_at_pos, model, condition_names, 
-                                        statstest.METHODS_DICT[method['test']])
+        pairwise_t = list(test_pairwise(data_at_pos, model, rep_map, mod_id,
+                                        statstest.METHODS_DICT[method['test']['method']]))
         ## do all vs one tests
-        all_tests = all_tests(data_at_pos, model, condition_names, 
-                                        statstest.METHODS_DICT[method['test']])
+        all_t = list(test_all(data_at_pos, model, rep_map, mod_id,
+                                        statstest.METHODS_DICT[method['test']['method']]))
 
         #TODO think of what to store; probably tests
         ### Store computed values in dict
-        models[key] = (model, cluster_id,  pairwise_tests, all_tests)
+        models[key] = (model, mod_id,  pairwise_tests, all_tests)
         # do not store prefiltering p val, as we can do better after modeling
         #            None if not method['prefiltering'] else \
         #            {method['prefiltering']['method']: pre_pval})
@@ -104,6 +109,8 @@ def _init_priors(kmer_signal, prior_params, n_groups, K=2) -> Dict:
     priors['w']['concentration'][:, 0] = float(prior_params['w']['concentration'][0])
     priors['w']['concentration'][:, 1] = float(prior_params['w']['concentration'][1])
 
+    return priors
+
 def _calculate_confidence_cluster_assignment(mu, kmer_signal):
     cdf = scipy.stats.norm.cdf(kmer_signal['mean'] - abs(kmer_signal['mean']-mu), loc=kmer_signal['mean'], scale=kmer_signal['std'])
     return cdf*2
@@ -126,18 +133,47 @@ def has_overlapping_peaks(model) -> bool:
 
     cdf_threshold = 0.1
     x_x1, y_x1, x_x2, y_x2 = list_cdf_at_intersections
-    is_not_inside = ((y_x1 < cdf_threshold) & (x_x1 < cdf_threshold)) |
-            ((y_x2 < cdf_threshold) & (x_x2 < cdf_threshold)) |
-            (( (1-y_x1) < cdf_threshold) & ((1-x_x1) < cdf_threshold)) |
+    is_not_inside = ((y_x1 < cdf_threshold) & (x_x1 < cdf_threshold)) |\
+            ((y_x2 < cdf_threshold) & (x_x2 < cdf_threshold)) |\
+            (( (1-y_x1) < cdf_threshold) & ((1-x_x1) < cdf_threshold)) |\
             (( (1-y_x2) < cdf_threshold) & ((1-x_x2) < cdf_threshold))
 
     return not ((p_overlap <= 0.5) and is_not_inside)
 
-def pairwise_tests(data_at_pos: List, model, condition_names: List, testmethod) -> List:
-    #TODO implement, similar to part in tabulate_results
-    #for c1, c2 in 
+def test_pairwise(data_at_pos: List, model,
+                   rep_map: Dict, mod_id: int,
+                   testmethod) -> List:
 
-def all_tests(data_at_pos: List, model, condition_names: List, testmethod) -> List:
+    # check if model contains any of the conditions, otherwise return directly
+    print(rep_map)
+    #if all(cname not in model.nodes['x'].params['group_names'] for cname in condition_names):
+    #    return
+
+    grpnames = model.nodes['x'].params['group_names']
+    print(grpnames)
+
+    # if pooling, just test conditions against each other
+    # otherwise, test all replicates of one condition against the other
+    #TODO merge into one for loop over different iterators?
+    if model.method['pooling'] or True:
+        for c1, c2 in itertools.combinations(rep_map.keys(), 2):
+            # merge 
+            print(c1, c2)
+            print(model.nodes['w'].expected())
+            print(model.nodes['w'].expected()[np.isin(grpnames, rep_map[c1]), mod_id])
+            pval, esize = testmethod(data_at_pos, model)
+            yield (c1, c2, pval, esize)
+    else:
+        for c1, c2 in itertools.combinations(rep_map.keys(), 2):
+            for rep1, rep2 in itertools.product(rep_map[c1], rep_map[c2]):
+                print(c1, rep1, c2, rep2)
+                pval, esize = testmethod(data_at_pos, model)
+                yield (rep1, rep2, pval, esize)
+
+
+
+def test_all(data_at_pos: List, model, condition_names: List, mod_id: int, testmethod) -> List:
+    pass
     #TODO implement, similar to part in tabulate_results
 
                         

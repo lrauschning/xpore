@@ -25,14 +25,14 @@ def _separate_conds(labels, data) -> Tuple[np.array, np.array]:
     return c1data, c2data
 
 
-def t_test(data: Dict) -> Tuple[float, float]:
+def t_test(data: Dict, model) -> Tuple[float, float]:
     c1means, c2means = _separate_conds(data['x'].astype(np.bool), data['y'])
 
     # perform t test on data
-    stats, _ = scipy.stats.ttest_ind(c1means, c2means)
+    tstat, _ = scipy.stats.ttest_ind(c1means, c2means)
 
     # compute two-sided significance. |labels| - 2 degrees of freedom
-    return scipy.stats.t.sf(np.abs(stats), len(c1means)+len(c2means)-2)*2
+    return scipy.stats.t.sf(np.abs(tstat), len(c1means)+len(c2means)-2)*2, tstat
     # equivalent, but sf can be more precise
     #(1 - scipy.stats.t.cdf(abs(stat), df)) * 2
 
@@ -40,7 +40,7 @@ def t_test(data: Dict) -> Tuple[float, float]:
 #coverage = np.sum(model.nodes['y'].params['N'], axis=-1)  # GK => G # n_reads per group
 
 
-def z_test(data: Dict) -> Tuple[float, float]:
+def z_test(data: Dict, model) -> Tuple[float, float]:
     print(data['x'], data['y'])
     
     # separate both means and cov data
@@ -57,11 +57,12 @@ def z_test(data: Dict) -> Tuple[float, float]:
     return z, scipy.stats.norm.sf(abs(z))*2
 
 
-def linear_test(data: List) -> float:
+def linear_test(data: List, model) -> float:
     pass
 
 # dictionary to map config options to test implementations
 METHODS_DICT= {"t_test":t_test, "t-test": t_test, "t": t_test,
                "linear_test": linear_test, "linear-test": linear_test, "l": linear_test,
                }
+PREFILT_METHODS_DICT = METHODS_DICT
 
