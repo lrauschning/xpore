@@ -70,7 +70,7 @@ def execute(idx, data_dict, data_info, method, criteria, model_kmer, prior_param
 
         #TODO think of what to store; probably tests
         ### Store computed values in dict
-        models[key] = (model, mod_id,  pairwise_tests, all_tests)
+        models[key] = (model, mod_id, pairwise_tests, all_tests)
         # do not store prefiltering p val, as we can do better after modeling
         #            None if not method['prefiltering'] else \
         #            {method['prefiltering']['method']: pre_pval})
