@@ -7,7 +7,7 @@ import ujson
 from collections import defaultdict
 import csv
 import itertools
-from typing import Dict, Tuple, List
+from typing import Dict, List
 from dataclasses import dataclass
 
 
@@ -24,25 +24,25 @@ class Site:
     idx: str
     position: int
     kmer: str
-    prefiltering: TestResult
+    prefiltering: statstest.TestResult
     mod_id: int
-    model
+    model: GMM
     tests: List[statstest.TestResult]
 
     def get_header(self) -> List[str]:
-        return ['id', 'pos', 'kmer', 'prefil_p', 'mu', 'mu_conf', 'sigma2', 'mod_id', 'change_dir'] + 
+        return ['id', 'pos', 'kmer', 'prefil_p', 'mu', 'mu_conf', 'sigma2', 'mod_id', 'change_dir'] + \
             itertools.chain.from_iterable(t.get_header() for t in self.tests)
 
     def get_row(self) -> List[float]:
         mu = self.model.nodes['mu_tau'].expected()
         sigma2 = 1./self.model.nodes['mu_tau'].expected(var='gamma')  # K
         conf_mu = [io.calculate_confidence_cluster_assignment(mu[0], self.model.kmer_signal), io.calculate_confidence_cluster_assignment(mu[1], self.model.kmer_signal)]
-        w = self.model.nodes['w'].expected()
+        #w = self.model.nodes['w'].expected()
 
         change_dir = 'higher' if mu[self.mod_id] < mu[self.mod_id ^ 1] else 'lower'
 
-        return [self.id, self.pos, self.kmer, self.prefiltering.pval, self.mu[self.mod_id], self.conf_mu[self.mod_id], self.sigma2, self.mod_id, self.change_dir] +
-            itertools.chain.from_iterable(t.get_row() for t in self.tests))
+        return [self.id, self.pos, self.kmer, self.prefiltering.pval, mu[self.mod_id], conf_mu[self.mod_id], sigma2, self.mod_id, change_dir] + \
+            itertools.chain.from_iterable(t.get_row() for t in self.tests)
 
         
 def execute(idx, data_dict, data_info, method, criteria, model_kmer, prior_params, out_paths, save_models,locks):
@@ -57,7 +57,7 @@ def execute(idx, data_dict, data_info, method, criteria, model_kmer, prior_param
 
 
     ### iterate over sites, storing the models in a List
-    Sites: List[Site] = list()
+    sites: List[Site] = list()
     for key, data_at_pos in data.items():
         idx, pos, kmer = key
         kmer_signal = {'mean': model_kmer.loc[kmer, 'model_mean'], 'std': model_kmer.loc[kmer, 'model_stdv']}
@@ -97,20 +97,17 @@ def execute(idx, data_dict, data_info, method, criteria, model_kmer, prior_param
                                         statstest.METHODS_DICT[method['test']['method']]))
 
         ### Store computed values in dict
-        models[key] = (model, mod_id, pairwise_tests, all_tests)
         sites.append(Site(idx, pos, kmer, pre_pval, mod_id, model, pairwise_t + all_t))
     #END
         
     # legacy option to save models to hdf5, think for debugging
-    if save_models & (len(models)>0):
+    if save_models & (len(sites)>0):
         print(out_paths['model_filepath'], idx)
         io.save_models_to_hdf5([site.model for site in sites], out_paths['model_filepath'])
     
     # save results
-    if len(models)>0:
+    if len(sites)>0:
         # Generating the result table.
-        #TODO replace with dedicated fn or just ','.join()?
-        table = tabulate_results(models, data_info)
         with locks['table'], open(out_paths['table'], 'a') as f:
             # write header
             csv.writer(f, delimiter=',').writerow(sites[0].get_header())
