@@ -205,143 +205,6 @@ def test_all(data_at_pos: List, model, condition_names: List, mod_id: int, testm
     #TODO implement, similar to part in tabulate_results
 
                         
-def tabulate_results(models, data_info):  # per idx (gene/transcript)
-    """
-    Generate a table containing learned model parameters and statistic tests.
-
-    Parameters
-    ----------
-    models
-        Learned models for individual genomic positions of a gene.
-    data_inf
-        Dict
-
-    Returns
-    -------
-    table
-        List of tuples.
-    """
-    table = []
-    for key, (model,prefiltering) in models.items():
-        idx, position, kmer = key
-        mu = model.nodes['mu_tau'].expected()  # K
-        sigma2 = 1./model.nodes['mu_tau'].expected(var='gamma')  # K
-        # these were not used anywhere; suppose they were for testing?
-        # var_mu = model.nodes['mu_tau'].variance(var='normal')  # K
-        # mu = model.nodes['y'].params['mean']
-        # sigma2 = model.nodes['y'].params['variance']
-        # N = model.nodes['y'].params['N'].round()  # GK
-        w = model.nodes['w'].expected()  # GK
-        coverage = np.sum(model.nodes['y'].params['N'], axis=-1)  # GK => G # n_reads per group
-        #TODO get this into data or sth
-
-        p_overlap, list_cdf_at_intersections = stats.calc_prob_overlapping(mu, sigma2)
-
-        model_group_names = model.nodes['x'].params['group_names'] #condition_names if pooling, run_names otherwise.
-        
-        ### Cluster assignment ###
-        conf_mu = [io.calculate_confidence_cluster_assignment(mu[0], model.kmer_signal), io.calculate_confidence_cluster_assignment(mu[1], model.kmer_signal)]
-    
-        cluster_idx = {}
-        if conf_mu[0] > conf_mu[1]:
-            cluster_idx['unmod'] = 0
-            cluster_idx['mod'] = 1
-        else:
-            cluster_idx['unmod'] = 1
-            cluster_idx['mod'] = 0
-
-        mu_assigned = [mu[cluster_idx['unmod']],mu[cluster_idx['mod']]]
-        sigma2_assigned = [sigma2[cluster_idx['unmod']],sigma2[cluster_idx['mod']]] 
-        conf_mu = [conf_mu[cluster_idx['unmod']],conf_mu[cluster_idx['mod']]]
-        w_mod = w[:,cluster_idx['mod']]
-        mod_assignment = [['higher','lower'][(mu[0]<mu[1])^cluster_idx['mod']]]
-            
-        
-        ### calculate stats_pairwise
-        stats_pairwise = []
-        for cond1, cond2 in itertools.combinations(condition_names, 2):
-            if model.method['pooling']:
-                cond1, cond2 = [cond1], [cond2]
-            else:
-                cond1, cond2 = list(data_info[cond1].keys()), list(data_info[cond2].keys())
-
-            if any(r in model_group_names for r in cond1) \
-                    and any(r in model_group_names for r in cond2):
-                w_cond1 = w[np.isin(model_group_names, cond1), cluster_idx['mod']].flatten()
-                w_cond2 = w[np.isin(model_group_names, cond2), cluster_idx['mod']].flatten()
-                n_cond1 = coverage[np.isin(model_group_names, cond1)]
-                n_cond2 = coverage[np.isin(model_group_names, cond2)]
-                assert n_cond1 == len(w_cond1)
-                assert n_cond2 == len(w_cond2)
-
-                z_score, p_ws = statstest.z_test(w_cond1, w_cond2, n_cond1, n_cond2) # two=tailed
-                #TODO hook in more fancy test here
-                w_mod_mean_diff = np.mean(w_cond1)-np.mean(w_cond2)
-
-                stats_pairwise += [w_mod_mean_diff, p_ws, z_score]
-            else:
-                stats_pairwise += [None, None, None]
-
-        if len(condition_names) > 2:
-            ### calculate stats_one_vs_all
-            stats_one_vs_all = []
-            for cond in condition_names:
-                if model.method['pooling']:
-                    cond = [cond]
-                else:
-                    cond = list(data_info[cond].keys())
-                if any(r in model_group_names for r in cond):
-                    w_cond1 = w[np.isin(model_group_names, cond), cluster_idx['mod']].flatten()
-                    w_cond2 = w[~np.isin(model_group_names, cond), cluster_idx['mod']].flatten()
-                    n_cond1 = coverage[np.isin(model_group_names, cond)]
-                    n_cond2 = coverage[~np.isin(model_group_names, cond)]
-
-                    z_score, p_ws = statstest.z_test(w_cond1, w_cond2, n_cond1, n_cond2)
-                    #TODO hook in more fancy test here
-                    w_mod_mean_diff = np.mean(w_cond1)-np.mean(w_cond2)
-
-                    stats_one_vs_all += [w_mod_mean_diff, p_ws, z_score]
-                else:
-                    stats_one_vs_all += [None, None, None]
-
-        ###
-        w_mod_ordered, coverage_ordered = [], [] # ordered by conditon_names or run_names based on headers.        
-        if model.method['pooling']:
-            names = condition_names
-        else:
-            names = run_names
-        for name in names:
-            if name in model_group_names:
-                w_mod_ordered += list(w_mod[np.isin(model_group_names, name)])
-                coverage_ordered += list(coverage[np.isin(model_group_names, name)])
-            else:
-                w_mod_ordered += [None]
-                coverage_ordered += [None]
-
-        ### prepare values to write
-        row = [idx, position, kmer]
-        row += stats_pairwise
-        if len(condition_names) > 2:
-            row += stats_one_vs_all
-
-        # row += [p_overlap]
-        # row += list_cdf_at_intersections
-        row += list(w_mod_ordered)
-        row += list(coverage_ordered)
-        row += mu_assigned + sigma2_assigned + conf_mu + mod_assignment
-
-
-        if prefiltering is not None:
-            row += [prefiltering[model.method['prefiltering']['method']]]
-        ### Filtering those positions with a nearly single distribution.
-        cdf_threshold = 0.1
-        x_x1, y_x1, x_x2, y_x2 = list_cdf_at_intersections
-        is_not_inside = ((y_x1 < cdf_threshold) & (x_x1 < cdf_threshold)) | ((y_x2 < cdf_threshold) & (x_x2 < cdf_threshold)) | (( (1-y_x1) < cdf_threshold) & ((1-x_x1) < cdf_threshold)) | (( (1-y_x2) < cdf_threshold) & ((1-x_x2) < cdf_threshold))
-        if (p_overlap <= 0.5) and (is_not_inside):
-            table += [tuple(row)]
-
-    return table
-
 
 def diffmod(args):
     
@@ -452,3 +315,141 @@ def diffmod(args):
 
     with open(out_paths['log'],'a+') as f:
         f.write(helper.decor_message('successfully finished'))
+
+#def tabulate_results(models, data_info):  # per idx (gene/transcript)
+#    """
+#    Generate a table containing learned model parameters and statistic tests.
+#
+#    Parameters
+#    ----------
+#    models
+#        Learned models for individual genomic positions of a gene.
+#    data_inf
+#        Dict
+#
+#    Returns
+#    -------
+#    table
+#        List of tuples.
+#    """
+#    table = []
+#    for key, (model,prefiltering) in models.items():
+#        idx, position, kmer = key
+#        mu = model.nodes['mu_tau'].expected()  # K
+#        sigma2 = 1./model.nodes['mu_tau'].expected(var='gamma')  # K
+#        # these were not used anywhere; suppose they were for testing?
+#        # var_mu = model.nodes['mu_tau'].variance(var='normal')  # K
+#        # mu = model.nodes['y'].params['mean']
+#        # sigma2 = model.nodes['y'].params['variance']
+#        # N = model.nodes['y'].params['N'].round()  # GK
+#        w = model.nodes['w'].expected()  # GK
+#        coverage = np.sum(model.nodes['y'].params['N'], axis=-1)  # GK => G # n_reads per group
+#        #TODO get this into data or sth
+#
+#        p_overlap, list_cdf_at_intersections = stats.calc_prob_overlapping(mu, sigma2)
+#
+#        model_group_names = model.nodes['x'].params['group_names'] #condition_names if pooling, run_names otherwise.
+#        
+#        ### Cluster assignment ###
+#        conf_mu = [io.calculate_confidence_cluster_assignment(mu[0], model.kmer_signal), io.calculate_confidence_cluster_assignment(mu[1], model.kmer_signal)]
+#    
+#        cluster_idx = {}
+#        if conf_mu[0] > conf_mu[1]:
+#            cluster_idx['unmod'] = 0
+#            cluster_idx['mod'] = 1
+#        else:
+#            cluster_idx['unmod'] = 1
+#            cluster_idx['mod'] = 0
+#
+#        mu_assigned = [mu[cluster_idx['unmod']],mu[cluster_idx['mod']]]
+#        sigma2_assigned = [sigma2[cluster_idx['unmod']],sigma2[cluster_idx['mod']]] 
+#        conf_mu = [conf_mu[cluster_idx['unmod']],conf_mu[cluster_idx['mod']]]
+#        w_mod = w[:,cluster_idx['mod']]
+#        mod_assignment = [['higher','lower'][(mu[0]<mu[1])^cluster_idx['mod']]]
+#            
+#        
+#        ### calculate stats_pairwise
+#        stats_pairwise = []
+#        for cond1, cond2 in itertools.combinations(condition_names, 2):
+#            if model.method['pooling']:
+#                cond1, cond2 = [cond1], [cond2]
+#            else:
+#                cond1, cond2 = list(data_info[cond1].keys()), list(data_info[cond2].keys())
+#
+#            if any(r in model_group_names for r in cond1) \
+#                    and any(r in model_group_names for r in cond2):
+#                w_cond1 = w[np.isin(model_group_names, cond1), cluster_idx['mod']].flatten()
+#                w_cond2 = w[np.isin(model_group_names, cond2), cluster_idx['mod']].flatten()
+#                n_cond1 = coverage[np.isin(model_group_names, cond1)]
+#                n_cond2 = coverage[np.isin(model_group_names, cond2)]
+#                assert n_cond1 == len(w_cond1)
+#                assert n_cond2 == len(w_cond2)
+#
+#                z_score, p_ws = statstest.z_test(w_cond1, w_cond2, n_cond1, n_cond2) # two=tailed
+#                #TODO hook in more fancy test here
+#                w_mod_mean_diff = np.mean(w_cond1)-np.mean(w_cond2)
+#
+#                stats_pairwise += [w_mod_mean_diff, p_ws, z_score]
+#            else:
+#                stats_pairwise += [None, None, None]
+#
+#        if len(condition_names) > 2:
+#            ### calculate stats_one_vs_all
+#            stats_one_vs_all = []
+#            for cond in condition_names:
+#                if model.method['pooling']:
+#                    cond = [cond]
+#                else:
+#                    cond = list(data_info[cond].keys())
+#                if any(r in model_group_names for r in cond):
+#                    w_cond1 = w[np.isin(model_group_names, cond), cluster_idx['mod']].flatten()
+#                    w_cond2 = w[~np.isin(model_group_names, cond), cluster_idx['mod']].flatten()
+#                    n_cond1 = coverage[np.isin(model_group_names, cond)]
+#                    n_cond2 = coverage[~np.isin(model_group_names, cond)]
+#
+#                    z_score, p_ws = statstest.z_test(w_cond1, w_cond2, n_cond1, n_cond2)
+#                    #TODO hook in more fancy test here
+#                    w_mod_mean_diff = np.mean(w_cond1)-np.mean(w_cond2)
+#
+#                    stats_one_vs_all += [w_mod_mean_diff, p_ws, z_score]
+#                else:
+#                    stats_one_vs_all += [None, None, None]
+#
+#        ###
+#        w_mod_ordered, coverage_ordered = [], [] # ordered by conditon_names or run_names based on headers.        
+#        if model.method['pooling']:
+#            names = condition_names
+#        else:
+#            names = run_names
+#        for name in names:
+#            if name in model_group_names:
+#                w_mod_ordered += list(w_mod[np.isin(model_group_names, name)])
+#                coverage_ordered += list(coverage[np.isin(model_group_names, name)])
+#            else:
+#                w_mod_ordered += [None]
+#                coverage_ordered += [None]
+#
+#        ### prepare values to write
+#        row = [idx, position, kmer]
+#        row += stats_pairwise
+#        if len(condition_names) > 2:
+#            row += stats_one_vs_all
+#
+#        # row += [p_overlap]
+#        # row += list_cdf_at_intersections
+#        row += list(w_mod_ordered)
+#        row += list(coverage_ordered)
+#        row += mu_assigned + sigma2_assigned + conf_mu + mod_assignment
+#
+#
+#        if prefiltering is not None:
+#            row += [prefiltering[model.method['prefiltering']['method']]]
+#        ### Filtering those positions with a nearly single distribution.
+#        cdf_threshold = 0.1
+#        x_x1, y_x1, x_x2, y_x2 = list_cdf_at_intersections
+#        is_not_inside = ((y_x1 < cdf_threshold) & (x_x1 < cdf_threshold)) | ((y_x2 < cdf_threshold) & (x_x2 < cdf_threshold)) | (( (1-y_x1) < cdf_threshold) & ((1-x_x1) < cdf_threshold)) | (( (1-y_x2) < cdf_threshold) & ((1-x_x2) < cdf_threshold))
+#        if (p_overlap <= 0.5) and (is_not_inside):
+#            table += [tuple(row)]
+#
+#    return table
+
