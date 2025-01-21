@@ -8,6 +8,7 @@ from collections import defaultdict
 import csv
 import itertools
 from typing import Dict, Tuple, List
+from dataclasses import dataclass
 
 
 from . import helper
@@ -16,6 +17,33 @@ from ..diffmod.gmm import GMM
 from ..diffmod import io
 from ..diffmod import statstest
 from ..utils import stats
+
+
+@dataclass
+class Site:
+    idx: str
+    position: int
+    kmer: str
+    prefiltering: TestResult
+    mod_id: int
+    model
+    tests: List[statstest.TestResult]
+
+    def get_header(self) -> List[str]:
+        return ['id', 'pos', 'kmer', 'prefil_p', 'mu', 'mu_conf', 'sigma2', 'mod_id', 'change_dir'] + 
+            itertools.chain.from_iterable(t.get_header() for t in self.tests)
+
+    def get_row(self) -> List[float]:
+        mu = self.model.nodes['mu_tau'].expected()
+        sigma2 = 1./self.model.nodes['mu_tau'].expected(var='gamma')  # K
+        conf_mu = [io.calculate_confidence_cluster_assignment(mu[0], self.model.kmer_signal), io.calculate_confidence_cluster_assignment(mu[1], self.model.kmer_signal)]
+        w = self.model.nodes['w'].expected()
+
+        change_dir = 'higher' if mu[self.mod_id] < mu[self.mod_id ^ 1] else 'lower'
+
+        return [self.id, self.pos, self.kmer, self.prefiltering.pval, self.mu[self.mod_id], self.conf_mu[self.mod_id], self.sigma2, self.mod_id, self.change_dir] +
+            itertools.chain.from_iterable(t.get_row() for t in self.tests))
+
         
 def execute(idx, data_dict, data_info, method, criteria, model_kmer, prior_params, out_paths, save_models,locks):
     """

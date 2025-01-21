@@ -21,7 +21,7 @@ class TestResult:
     esize: float
     formula: str
 
-    def get_headers(self) -> List[str]:
+    def get_header(self) -> List[str]:
         return [f"p_{formula}", f"ES_{formula}"]
 
     def get_row(self) -> List[float]:
