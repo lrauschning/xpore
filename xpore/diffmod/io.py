@@ -2,7 +2,7 @@ import numpy as np
 import h5py
 from collections import OrderedDict, defaultdict
 import itertools
-import scipy.stats
+#import scipy.stats
 
 from .gmm import GMM
 

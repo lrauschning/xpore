@@ -7,7 +7,7 @@ import scipy.stats
 # making them explicit as global variables, instead of modifying late-binding default args
 DATA = {'x': None, 'y': None, 'condition_names': None, 'run_names': None}
 PRIORS = {'mu_tau': None, 'w': None}
-#INITS = {'info': None, 'nodes': {'x': None, 'y': None, 'w': None, 'mu_tau': None, 'z': None}}
+INITS = {'info': None, 'nodes': {'x': None, 'y': None, 'w': None, 'mu_tau': None, 'z': None}}
         
 
 class GMM:  
