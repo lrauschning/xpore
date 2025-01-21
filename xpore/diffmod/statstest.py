@@ -1,6 +1,7 @@
 import scipy.stats
 import numpy as np
 from typing import List, Dict, Tuple
+from dataclasses import dataclass
 
 """
 This file implements some statistical tests, used both for prefiltering sites prior to GMM fitting to improve performance and for assigning significance after the fit.
@@ -12,6 +13,20 @@ It is called by worker threads in scripts/diffmod.py .
 # data is stored in a dict that looks like this:
 # (idx, pos, kmer) -> {'y': y, 'x': x, 'r': r, 'condition_names': condition_names_dummies, 'run_names': run_names_dummies, 'y_condition_names': condition_labels, 'y_run_names': run_labels}
 # by default, in the call only the values are passed along
+
+
+@dataclass
+class TestResult:
+    pval: float
+    esize: float
+    formula: str
+
+    def get_headers(self) -> List[str]:
+        return [f"p_{formula}", f"ES_{formula}"]
+
+    def get_row(self) -> List[float]:
+        return [pval, esize]
+
 
 def _separate_conds(labels, data) -> Tuple[np.array, np.array]:
     # check for at most two conditions
@@ -25,14 +40,14 @@ def _separate_conds(labels, data) -> Tuple[np.array, np.array]:
     return c1data, c2data
 
 
-def t_test(data: Dict, model) -> Tuple[float, float]:
+def t_test(data: Dict, model) -> TestResult:
     c1means, c2means = _separate_conds(data['x'].astype(np.bool), data['y'])
 
     # perform t test on data
     tstat, _ = scipy.stats.ttest_ind(c1means, c2means)
 
     # compute two-sided significance. |labels| - 2 degrees of freedom
-    return scipy.stats.t.sf(np.abs(tstat), len(c1means)+len(c2means)-2)*2, tstat
+    return TestResult(scipy.stats.t.sf(np.abs(tstat), len(c1means)+len(c2means)-2)*2, tstat, '')
     # equivalent, but sf can be more precise
     #(1 - scipy.stats.t.cdf(abs(stat), df)) * 2
 
@@ -40,7 +55,7 @@ def t_test(data: Dict, model) -> Tuple[float, float]:
 #coverage = np.sum(model.nodes['y'].params['N'], axis=-1)  # GK => G # n_reads per group
 
 
-def z_test(data: Dict, model) -> Tuple[float, float]:
+def z_test(data: Dict, model) -> TestResult:
     print(data['x'], data['y'])
     
     # separate both means and cov data
@@ -54,10 +69,10 @@ def z_test(data: Dict, model) -> Tuple[float, float]:
     se = np.sqrt(p1*(1-p1)/n1 + p2*(1-p2)/n2)
     z = (p1 - p2) / se
     # do a two-tailed test
-    return z, scipy.stats.norm.sf(abs(z))*2
+    TestResult(scipy.stats.norm.sf(abs(z))*2, z, '')
 
 
-def linear_test(data: List, model) -> float:
+def linear_test(data: List, model) -> TestResult:
     pass
 
 # dictionary to map config options to test implementations
