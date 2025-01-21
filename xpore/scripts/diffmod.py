@@ -22,27 +22,27 @@ from ..utils import stats
 @dataclass
 class Site:
     idx: str
-    position: int
+    pos: int
     kmer: str
-    prefiltering: statstest.TestResult
+    prefilter: statstest.TestResult
     mod_id: int
     model: GMM
     tests: List[statstest.TestResult]
 
     def get_header(self) -> List[str]:
         return ['id', 'pos', 'kmer', 'prefil_p', 'mu', 'mu_conf', 'sigma2', 'mod_id', 'change_dir'] + \
-            itertools.chain.from_iterable(t.get_header() for t in self.tests)
+            list(itertools.chain.from_iterable(t.get_header() for t in self.tests))
 
     def get_row(self) -> List[float]:
         mu = self.model.nodes['mu_tau'].expected()
         sigma2 = 1./self.model.nodes['mu_tau'].expected(var='gamma')  # K
-        conf_mu = [io.calculate_confidence_cluster_assignment(mu[0], self.model.kmer_signal), io.calculate_confidence_cluster_assignment(mu[1], self.model.kmer_signal)]
+        conf_mu = [_calculate_confidence_cluster_assignment(mu[0], self.model.kmer_signal), _calculate_confidence_cluster_assignment(mu[1], self.model.kmer_signal)]
         #w = self.model.nodes['w'].expected()
 
         change_dir = 'higher' if mu[self.mod_id] < mu[self.mod_id ^ 1] else 'lower'
 
-        return [self.id, self.pos, self.kmer, self.prefiltering.pval, mu[self.mod_id], conf_mu[self.mod_id], sigma2, self.mod_id, change_dir] + \
-            itertools.chain.from_iterable(t.get_row() for t in self.tests)
+        return [self.idx, self.pos, self.kmer, self.prefilter.pval, mu[self.mod_id], conf_mu[self.mod_id], sigma2, self.mod_id, change_dir] + \
+            list(itertools.chain.from_iterable(t.get_row() for t in self.tests))
 
         
 def execute(idx, data_dict, data_info, method, criteria, model_kmer, prior_params, out_paths, save_models,locks):
@@ -69,11 +69,11 @@ def execute(idx, data_dict, data_info, method, criteria, model_kmer, prior_param
         priors = _init_priors(kmer_signal, prior_params, len(data_at_pos['condition_names']) if method['pooling'] else len(data_at_pos['run_names']), K=2)
 
         ### Prefiltering, if enabled
-        pre_pval = None
+        prefilter = None
         if method['prefiltering']:
             # ignore effect size if estimated
-            pre_pval, _ = statstest.PREFILT_METHODS_DICT[method['prefiltering']['method']](data_at_pos, None)
-            if pre_pval > method['prefiltering']['threshold']:
+            prefilter = statstest.PREFILT_METHODS_DICT[method['prefiltering']['method']](data_at_pos, None)
+            if prefilter.pval > method['prefiltering']['threshold']:
                 continue
 
         ### Fit a model
@@ -93,11 +93,11 @@ def execute(idx, data_dict, data_info, method, criteria, model_kmer, prior_param
         pairwise_t = list(test_pairwise(data_at_pos, model, rep_map, mod_id,
                                         statstest.METHODS_DICT[method['test']['method']]))
         ## do all vs one tests
-        all_t = list(test_all(data_at_pos, model, rep_map, mod_id,
-                                        statstest.METHODS_DICT[method['test']['method']]))
+        all_t = [] #list(test_all(data_at_pos, model, rep_map, mod_id,
+        #                                statstest.METHODS_DICT[method['test']['method']]))
 
         ### Store computed values in dict
-        sites.append(Site(idx, pos, kmer, pre_pval, mod_id, model, pairwise_t + all_t))
+        sites.append(Site(idx, pos, kmer, prefilter, mod_id, model, pairwise_t + all_t))
     #END
         
     # legacy option to save models to hdf5, think for debugging
@@ -186,14 +186,16 @@ def test_pairwise(data_at_pos: List, model,
             print(c1, c2)
             print(model.nodes['w'].expected())
             print(model.nodes['w'].expected()[np.isin(grpnames, rep_map[c1]), mod_id])
-            pval, esize = testmethod(data_at_pos, model)
-            yield (c1, c2, pval, esize)
+            result = testmethod(data_at_pos, model)
+            result.formula = c1 + '_vs_' + c2
+            yield result
     else:
         for c1, c2 in itertools.combinations(rep_map.keys(), 2):
             for rep1, rep2 in itertools.product(rep_map[c1], rep_map[c2]):
                 print(c1, rep1, c2, rep2)
-                pval, esize = testmethod(data_at_pos, model)
-                yield (rep1, rep2, pval, esize)
+                result = testmethod(data_at_pos, model)
+                result.formula = c1 + '_vs_' + c2
+                yield result
 
 
 
