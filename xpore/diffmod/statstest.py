@@ -17,15 +17,16 @@ It is called by worker threads in scripts/diffmod.py .
 
 @dataclass
 class TestResult:
+    diff: float
     pval: float
     esize: float
     formula: str
 
     def get_header(self) -> List[str]:
-        return [f"p_{formula}", f"ES_{formula}"]
+        return [f"diff_{formula}, p_{formula}", f"ES_{formula}"]
 
     def get_row(self) -> List[float]:
-        return [pval, esize]
+        return [self.diff, self.pval, self.esize]
 
 
 def _separate_conds(labels, data) -> Tuple[np.array, np.array]:
@@ -47,7 +48,7 @@ def t_test(data: Dict, model) -> TestResult:
     tstat, _ = scipy.stats.ttest_ind(c1means, c2means)
 
     # compute two-sided significance. |labels| - 2 degrees of freedom
-    return TestResult(scipy.stats.t.sf(np.abs(tstat), len(c1means)+len(c2means)-2)*2, tstat, '')
+    return TestResult(c1means - c2means, scipy.stats.t.sf(np.abs(tstat), len(c1means)+len(c2means)-2)*2, tstat, '')
     # equivalent, but sf can be more precise
     #(1 - scipy.stats.t.cdf(abs(stat), df)) * 2
 
@@ -69,7 +70,7 @@ def z_test(data: Dict, model) -> TestResult:
     se = np.sqrt(p1*(1-p1)/n1 + p2*(1-p2)/n2)
     z = (p1 - p2) / se
     # do a two-tailed test
-    TestResult(scipy.stats.norm.sf(abs(z))*2, z, '')
+    TestResult(c2means - c2means, scipy.stats.norm.sf(abs(z))*2, z, '')
 
 
 def linear_test(data: List, model) -> TestResult:
