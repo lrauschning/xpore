@@ -56,8 +56,8 @@ def execute(idx, data_dict, data_info, method, criteria, model_kmer, prior_param
     print(condition_names, run_names)
 
 
-    ### iterate over sites, storing the models in a dict keyed by id/position/kmer
-    models = dict()
+    ### iterate over sites, storing the models in a List
+    Sites: List[Site] = list()
     for key, data_at_pos in data.items():
         idx, pos, kmer = key
         kmer_signal = {'mean': model_kmer.loc[kmer, 'model_mean'], 'std': model_kmer.loc[kmer, 'model_stdv']}
@@ -96,26 +96,26 @@ def execute(idx, data_dict, data_info, method, criteria, model_kmer, prior_param
         all_t = list(test_all(data_at_pos, model, rep_map, mod_id,
                                         statstest.METHODS_DICT[method['test']['method']]))
 
-        #TODO think of what to store; probably tests
         ### Store computed values in dict
         models[key] = (model, mod_id, pairwise_tests, all_tests)
-        # do not store prefiltering p val, as we can do better after modeling
-        #            None if not method['prefiltering'] else \
-        #            {method['prefiltering']['method']: pre_pval})
-
-
+        sites.append(Site(idx, pos, kmer, pre_pval, mod_id, model, pairwise_t + all_t))
     #END
         
+    # legacy option to save models to hdf5, think for debugging
     if save_models & (len(models)>0):
         print(out_paths['model_filepath'], idx)
-        io.save_models_to_hdf5(models, out_paths['model_filepath'])
-        
+        io.save_models_to_hdf5([site.model for site in sites], out_paths['model_filepath'])
+    
+    # save results
     if len(models)>0:
         # Generating the result table.
         #TODO replace with dedicated fn or just ','.join()?
         table = tabulate_results(models, data_info)
         with locks['table'], open(out_paths['table'], 'a') as f:
-            csv.writer(f, delimiter=',').writerows(table)
+            # write header
+            csv.writer(f, delimiter=',').writerow(sites[0].get_header())
+            # populate csv
+            csv.writer(f, delimiter=',').writerows(site.get_row() for site in sites)
         
     # Logging
     with locks['log'], open(out_paths['log'],'a') as f:
