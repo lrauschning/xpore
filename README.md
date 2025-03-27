@@ -62,4 +62,4 @@ Thank you!
 ---
 
 ### Contact
-xPore is maintained by [Ploy N. Pratanwanich](https://github.com/ploy-np), [Yuk Kei Wan](https://github.com/yuukiiwa) and [Jonathan Goeke](https://github.com/jonathangoeke) from the Genome Institute of Singapore, A\*STAR. 
+xPore is maintained by [Ploy N. Pratanwanich](https://github.com/ploy-np), [Yuk Kei Wan](https://github.com/yuukiiwa), [Leon Rauschning](https://github.com/lrauschning) and [Jonathan Goeke](https://github.com/jonathangoeke) from the Genome Institute of Singapore, A\*STAR. 
